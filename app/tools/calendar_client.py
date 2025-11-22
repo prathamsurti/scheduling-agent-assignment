@@ -68,9 +68,16 @@ def create_event(service, summary, start_iso, end_iso, description=None, attende
     event = {
         'summary': summary,
         'description': description,
-        'start': {'dateTime': start_iso, 'timeZone': 'UTC'},
-        'end': {'dateTime': end_iso, 'timeZone': 'UTC'},
+        'start': {
+            'dateTime': start_iso, # Format: '2025-11-23T15:00:00'
+            'timeZone': 'Asia/Kolkata', 
+        },
+        'end': {
+            'dateTime': end_iso,
+            'timeZone': 'Asia/Kolkata', 
+        },
     }
+
 
     # 2. Add Attendee Logic
     if attendee_email:
