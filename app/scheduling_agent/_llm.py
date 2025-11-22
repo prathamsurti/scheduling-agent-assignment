@@ -1,5 +1,6 @@
 from google.adk.models.lite_llm import LiteLlm 
 import datetime
+import os
 
 current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 base_url="https://openrouter.ai/api/v1"
@@ -7,7 +8,7 @@ base_url="https://openrouter.ai/api/v1"
 lite = LiteLlm(
     model ="openrouter/x-ai/grok-4.1-fast", 
     api_base = base_url,
-    api_key = "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", 
+    api_key = os.getenv("OPENROUTER_API_KEY"), 
     temperature= 0.0
 )
 
