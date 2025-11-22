@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rugas Health AI</title>
+    
+    <!-- Modern Font: Plus Jakarta Sans (Medical/Tech Standard) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Markdown Support -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        :root {
+            /* --- COLOR PALETTE --- */
+            --primary: #0f766e;       /* Deep Teal (Trust) */
+            --primary-light: #ccfbf1; /* Soft Teal Bg */
+            --accent: #14b8a6;        /* Bright Teal Accent */
+            
+            --bg-grad-start: #f0f9ff;
+            --bg-grad-end: #e0f2fe;
+            
+            --chat-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            
+            /* Bubbles */
+            --user-bubble-bg: #0f766e;
+            --user-text: #ffffff;
+            --bot-bubble-bg: #f1f5f9;
+            --bot-text: #334155;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, var(--bg-grad-start), var(--bg-grad-end));
+            margin: 0;
+            height: 100vh;
+            height: 100dvh; /* Mobile browser fix */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Prevent background scroll */
+        }
+
+        /* --- MAIN APP CONTAINER --- */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* DESKTOP MODE: Floats like a card */
+        @media (min-width: 481px) {
+            #app-container {
+                max-width: 420px;
+                height: 85vh;
+                max-height: 800px;
+                border-radius: 24px;
+                box-shadow: 0 25px 50px -12px rgba(15, 118, 110, 0.25), 
+                            0 0 0 1px rgba(0,0,0,0.02); /* Subtle border */
+                animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 18px 24px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .avatar-container { position: relative; }
+
+        .header-avatar {
+            width: 44px;
+            height: 44px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.1);
+        }
+
+        .status-dot {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background: #22c55e;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        .header-info h1 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.01em;
+        }
+
+        .header-info p {
+            margin: 2px 0 0 0;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* --- CHAT AREA --- */
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            /* Subtle medical pattern background */
+            background-image: radial-gradient(#0f766e 0.5px, transparent 0.5px);
+            background-size: 24px 24px;
+            background-color: #fff;
+            opacity: 1;
+            scroll-behavior: smooth;
+        }
+
+        /* Hide scrollbar */
+        #chat-history::-webkit-scrollbar { width: 4px; }
+        #chat-history::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
+
+        /* --- MESSAGES --- */
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            opacity: 0;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            max-width: 85%;
+        }
+
+        .message-group.agent { align-self: flex-start; }
+        .message-group.user { align-self: flex-end; align-items: flex-end; }
+
+        .message-meta {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin: 0 4px;
+            font-weight: 500;
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        }
+
+        .bubble.agent {
+            background: var(--bot-bubble-bg);
+            color: var(--bot-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .bubble.user {
+            background: var(--user-bubble-bg);
+            color: var(--user-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        /* Markdown Styles */
+        .bubble p { margin: 0 0 8px 0; }
+        .bubble p:last-child { margin: 0; }
+        .bubble strong { font-weight: 700; }
+        .bubble ul { margin: 4px 0; padding-left: 20px; }
+        .bubble li { margin-bottom: 4px; }
+
+        /* --- TYPING INDICATOR --- */
+        .typing-container {
+            padding: 0 20px;
+            margin-bottom: 15px;
+            display: none; /* Hidden by default */
+        }
+        .typing-bubble {
+            background: var(--bot-bubble-bg);
+            padding: 12px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            display: inline-flex;
+            gap: 4px;
+            width: fit-content;
+            align-items: center;
+        }
+        .dot {
+            width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* --- INPUT AREA --- */
+        .input-wrapper {
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            flex-shrink: 0; /* Don't shrink when keyboard opens */
+        }
+
+        .input-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 50px;
+            padding: 4px 4px 4px 20px; /* room for button */
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        .input-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1rem; /* 16px prevents iOS zoom */
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            background: transparent;
+            padding: 10px 0;
+        }
+
+        input::placeholder { color: #cbd5e1; }
+
+        button {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        button:hover { background: var(--accent); transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #cbd5e1; cursor: default; transform: none; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Header -->
+        <header>
+            <div class="avatar-container">
+                <div class="header-avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                <div class="status-dot"></div>
+            </div>
+            <div class="header-info">
+                <h1>Rugas Health AI</h1>
+                <p>Appointment Assistant &bull; <span id="display-sid" style="font-family:monospace; opacity:0.7">ID: ...</span></p>
+            </div>
+        </header>
+
+        <!-- Chat History -->
+        <div id="chat-history">
+            <!-- Bot Welcome -->
+            <div class="message-group agent">
+                <div class="bubble agent">
+                    Hello Sir/Mam! 👋 <br>
+                    Welcome to Rugas Health. <br><br>
+                    <strong>Can I please know your name?</strong>
+                </div>
+                <div class="message-meta">Just now</div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-container" id="typing-indicator">
+            <div class="typing-bubble">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-wrapper">
+            <div class="input-box">
+                <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+                <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const ENDPOINT = "/chat"; 
+        // Generate Session ID
+        const SESSION_ID = "sess-" + Math.random().toString(36).substr(2, 9);
+        document.getElementById('display-sid').textContent = SESSION_ID.substring(0,6);
+
+        // --- DOM ---
+        const chatHistory = document.getElementById('chat-history');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // --- EVENTS ---
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        // --- FUNCTIONS ---
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Show User Message
+            addMessage('user', text);
+            userInput.value = '';
+            setLoading(true);
+
+            try {
+                // 2. API Call
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: SESSION_ID, text: text })
+                });
+
+                if (!response.ok) throw new Error("Server Error");
+                
+                const data = await response.json();
+                
+                // 3. Show Agent Response
+                addMessage('agent', data.response);
+
+            } catch (error) {
+                console.error(error);
+                addMessage('agent', "⚠️ **System Error:** Unable to reach the booking server.");
+            } finally {
+                setLoading(false);
+                // Keep focus on desktop, loose focus on mobile to close keyboard if needed
+                if(window.innerWidth > 480) userInput.focus();
+            }
+        }
+
+        function addMessage(role, text) {
+            const group = document.createElement('div');
+            group.className = `message-group ${role}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `bubble ${role}`;
+            bubble.innerHTML = role === 'user' ? text : marked.parse(text);
+
+            const meta = document.createElement('div');
+            meta.className = 'message-meta';
+            const now = new Date();
+            meta.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            group.appendChild(bubble);
+            group.appendChild(meta);
+
+            chatHistory.appendChild(group);
+            scrollToBottom();
+        }
+
+        function setLoading(isLoading) {
+            userInput.disabled = isLoading;
+            sendBtn.disabled = isLoading;
+            typingIndicator.style.display = isLoading ? 'block' : 'none';
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    </script>
+</body>
+</html>
